@@ -1,7 +1,7 @@
 services:
   worker:
-    build: {context: .., dockerfile: deploy/Dockerfile}
-    command: [python, -m, distributed.node]
+    image: ${LINUXCK_WORKER_IMAGE:-linuxck-worker:local}
+    build: {context: .., dockerfile: deploy/Dockerfile, target: worker}
     environment:
       WORKER_ID: ${WORKER_ID:?set WORKER_ID}
       EXCHANGE: ${EXCHANGE:?set EXCHANGE}

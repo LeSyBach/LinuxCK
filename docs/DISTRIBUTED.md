@@ -9,7 +9,7 @@
 
 Sao chép `deploy/.env.example` vào tệp tên tương ứng và điền mật khẩu riêng. Trong Master, `POSTGRES_DSN` trỏ service `postgres:5432`, `MASTER_ADDRESS` trỏ service `rabbitmq:5672`. Ở Worker, `MASTER_ADDRESS` là URL AMQP qua địa chỉ nội bộ của Máy 1. Đặt `MASTER_BIND` thành địa chỉ Tailscale của Master khi đã có mạng riêng. PostgreSQL chỉ cần mạng Compose nội bộ. Dashboard và AMQP mẫu bind loopback. Cấu hình TLS và phân quyền RabbitMQ theo vhost cho triển khai ngoài môi trường tin cậy.
 
-Compose chỉ cần khi chủ dự án chủ động chạy. Để dừng, dùng cùng lệnh với `stop` thay cho `up --build -d`. Không dùng `down -v` nếu giữ dữ liệu. Ba project Compose có ba volume SQLite độc lập. Cấu hình Beszel Hub tại Master, Beszel Agent trên bốn máy và kết nối qua IP Tailscale khi có hạ tầng. Dashboard đã có heartbeat và tài nguyên của Master. TimeGPT để mở ở phần phân tích Master, chưa có lời gọi API.
+Compose chỉ cần khi chủ dự án chủ động chạy. Để dừng, dùng cùng lệnh với `stop` thay cho `up --build -d`. Không dùng `down -v` nếu giữ dữ liệu. Ba project Compose có ba volume SQLite độc lập. Dùng các tệp Compose trong [hướng dẫn phát hành](RELEASE.md) để chạy Beszel Hub tại Master và Beszel Agent trên cả bốn máy qua Tailscale. Dashboard đã có heartbeat và tài nguyên của Master. TimeGPT để mở ở phần phân tích Master, chưa có lời gọi API.
 
 ## Chạy giới hạn trong một môi trường
 

@@ -1,0 +1,19 @@
+services:
+  beszel-hub:
+    image: henrygd/beszel:0.21.2
+    restart: unless-stopped
+    environment:
+      APP_URL: ${BESZEL_HUB_URL:-http://127.0.0.1:8090}
+      DISABLE_SSH: "true"
+    ports:
+      - "${BESZEL_BIND:-127.0.0.1}:8090:8090"
+    volumes:
+      - beszel-hub-data:/beszel_data
+    healthcheck:
+      test: [CMD, /beszel, health, --url, "http://127.0.0.1:8090"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+volumes:
+  beszel-hub-data:

@@ -2,13 +2,13 @@
 
 Hệ thống thu thập và so sánh giá Spot từ Binance, OKX và Bybit. Máy 1 chạy RabbitMQ, PostgreSQL và dashboard. Máy 2–4 thu thập độc lập, lưu SQLite và tự gửi lại dữ liệu khi Master kết nối lại.
 
+Trên VM mới, dùng [hướng dẫn máy chủ](docs/HUONG-DAN-SERVER.md) hoặc [hướng dẫn worker](docs/HUONG-DAN-WORKER.md). Xem [hướng dẫn phát hành](docs/RELEASE.md) khi build và đổi tag image. Các bước bên dưới dùng khi build thử từ mã nguồn.
+
 ## Chuẩn bị trên cả bốn máy
 
-Cài Git, Docker Engine và Docker Compose v2 trên Ubuntu Server. Kết nối bốn máy vào cùng mạng Tailscale. Chạy các lệnh dưới đây từ thư mục repo.
+Cài Git, Docker Engine và Docker Compose v2 trên Ubuntu Server. Kết nối bốn máy vào cùng mạng Tailscale. Chạy các lệnh dưới đây từ thư mục chứa bản mã nguồn của nhánh triển khai.
 
 ```bash
-git clone https://github.com/LeSyBach/LinuxCK.git
-cd LinuxCK
 docker compose version
 ```
 

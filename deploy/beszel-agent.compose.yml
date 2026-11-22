@@ -1,0 +1,15 @@
+services:
+  beszel-agent:
+    image: henrygd/beszel-agent:0.21.2
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      HUB_URL: ${BESZEL_HUB_URL:?set BESZEL_HUB_URL}
+      KEY: ${BESZEL_KEY:?copy the public key from Beszel Hub}
+      TOKEN: ${BESZEL_TOKEN:?copy the system token from Beszel Hub}
+      DISABLE_SSH: "true"
+    volumes:
+      - beszel-agent-data:/var/lib/beszel-agent
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+volumes:
+  beszel-agent-data:

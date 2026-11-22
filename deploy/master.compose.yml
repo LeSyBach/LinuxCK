@@ -31,8 +31,8 @@ services:
     mem_limit: 512m
     cpus: 0.75
   backend:
-    build: {context: .., dockerfile: deploy/Dockerfile}
-    command: [python, -m, uvicorn, "distributed.master:create_app", --factory, --host, "0.0.0.0", --port, "8080"]
+    image: ${LINUXCK_SERVER_IMAGE:-linuxck-server:local}
+    build: {context: .., dockerfile: deploy/Dockerfile, target: server}
     environment:
       POSTGRES_DSN: ${POSTGRES_DSN:?set POSTGRES_DSN}
       MASTER_ADDRESS: ${MASTER_ADDRESS:?set MASTER_ADDRESS}

@@ -1,6 +1,7 @@
 .env
 .env.*
 !.env.example
+!deploy/.env.beszel.example
 .venv/
 __pycache__/
 .pytest_cache/
