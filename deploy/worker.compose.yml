@@ -1,0 +1,25 @@
+services:
+  worker:
+    build: {context: .., dockerfile: deploy/Dockerfile}
+    command: [python, -m, distributed.node]
+    environment:
+      WORKER_ID: ${WORKER_ID:?set WORKER_ID}
+      EXCHANGE: ${EXCHANGE:?set EXCHANGE}
+      MASTER_ADDRESS: ${MASTER_ADDRESS:?set MASTER_ADDRESS}
+      COLLECT_INTERVAL: ${COLLECT_INTERVAL:-60}
+      TICKER_INTERVAL: ${TICKER_INTERVAL:-300}
+      KLINE_INTERVAL: ${KLINE_INTERVAL:-300}
+      DATABASE_PATH: /data/market.sqlite3
+    volumes: [market-data:/data]
+    healthcheck:
+      test: [CMD, python, -m, distributed.health]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 50s
+    restart: unless-stopped
+    stop_grace_period: 20s
+    mem_limit: 192m
+    cpus: 0.5
+volumes:
+  market-data:

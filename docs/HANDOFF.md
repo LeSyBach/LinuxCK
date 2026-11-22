@@ -22,3 +22,7 @@
 - Lệnh kiểm thử và kết quả
 - Việc đang vướng
 - Bước tiếp theo
+
+## Thử nghiệm cục bộ bốn vai trò
+
+Mã ứng dụng chung ở `distributed/`, cấu hình Compose ở `deploy/`. Hướng dẫn vận hành, giao thức outbox và phạm vi thử nghiệm nằm trong [LinuxCK bốn vai trò](DISTRIBUTED.md). Mã Worker Binance độc lập từ thử nghiệm đầu vẫn có thể chạy riêng.

@@ -1,0 +1,63 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: linuxck
+      POSTGRES_DB: linuxck
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+    volumes: [postgres-data:/var/lib/postgresql/data]
+    healthcheck:
+      test: [CMD-SHELL, "pg_isready -U linuxck"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+    mem_limit: 384m
+    cpus: 0.75
+  rabbitmq:
+    image: rabbitmq:3.13-alpine
+    environment:
+      RABBITMQ_DEFAULT_USER: linuxck
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:?set RABBITMQ_PASSWORD}
+      RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS: "+S 2:2"
+    ports: ["${MASTER_BIND:-127.0.0.1}:5672:5672"]
+    volumes: [rabbit-data:/var/lib/rabbitmq]
+    healthcheck:
+      test: [CMD, rabbitmq-diagnostics, -q, ping]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+    mem_limit: 512m
+    cpus: 0.75
+  backend:
+    build: {context: .., dockerfile: deploy/Dockerfile}
+    command: [python, -m, uvicorn, "distributed.master:create_app", --factory, --host, "0.0.0.0", --port, "8080"]
+    environment:
+      POSTGRES_DSN: ${POSTGRES_DSN:?set POSTGRES_DSN}
+      MASTER_ADDRESS: ${MASTER_ADDRESS:?set MASTER_ADDRESS}
+      TELEGRAM_ENABLED: ${TELEGRAM_ENABLED:-false}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID:-}
+      TELEGRAM_REPORT_INTERVAL: ${TELEGRAM_REPORT_INTERVAL:-300}
+      TELEGRAM_SPREAD_THRESHOLD: ${TELEGRAM_SPREAD_THRESHOLD:-0.20}
+      TELEGRAM_COOLDOWN: ${TELEGRAM_COOLDOWN:-600}
+      TELEGRAM_SYMBOLS: ${TELEGRAM_SYMBOLS:-BTC,ETH,SOL,XRP,ADA}
+      WORKER_TIMEOUT: ${WORKER_TIMEOUT:-25}
+      COMPARISON_WINDOW: ${COMPARISON_WINDOW:-60}
+      FRESHNESS_SECONDS: ${FRESHNESS_SECONDS:-90}
+    depends_on:
+      postgres: {condition: service_healthy}
+      rabbitmq: {condition: service_healthy}
+    ports: ["${MASTER_BIND:-127.0.0.1}:8080:8080"]
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health',timeout=2)"]
+      interval: 10s
+      timeout: 4s
+      retries: 4
+    restart: unless-stopped
+    mem_limit: 256m
+    cpus: 0.75
+volumes:
+  postgres-data:
+  rabbit-data:

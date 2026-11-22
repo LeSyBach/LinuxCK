@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="vi"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>LinuxCK · Giám sát thị trường</title>
+<style>
+:root{color-scheme:dark;--bg:#0b1220;--panel:#132036;--line:#2b3d57;--text:#eff6ff;--muted:#9fb4d2;--accent:#64e9c4}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:15px system-ui,sans-serif}
+main{max-width:1400px;margin:auto;padding:32px clamp(14px,4vw,52px)}header{display:flex;align-items:end;justify-content:space-between;gap:20px;flex-wrap:wrap;margin-bottom:22px}
+h1{margin:4px 0;font-size:clamp(28px,4vw,46px);letter-spacing:-.04em}h2{font-size:19px;margin:0 0 14px}
+small,.muted{color:var(--muted)}strong{color:var(--accent)}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin-bottom:12px}
+section{border:1px solid var(--line);border-radius:14px;background:var(--panel);padding:17px;margin-bottom:12px;min-width:0}
+.grid section{margin:0}.columns{display:grid;grid-template-columns:1.3fr 1fr;gap:12px}.scroll{overflow:auto}
+table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}th,td{text-align:left;padding:9px 8px;border-bottom:1px solid var(--line);white-space:nowrap}th{color:var(--muted);font-weight:500}
+button,select{background:var(--bg);color:var(--text);border:1px solid var(--line);border-radius:7px;padding:6px 10px}
+canvas{width:100%;height:180px;display:block;margin-top:8px}pre{font-size:13px;white-space:pre-wrap;overflow-wrap:anywhere}
+.off{color:#ffadab}.on{color:var(--accent)}@media(max-width:850px){.columns{grid-template-columns:1fr}}
+</style>
+<main><header><div><small>LinuxCK</small><h1>Giám sát thị trường Spot</h1><div class="muted">Binance · OKX · Bybit</div></div><div id="status" role="status">Đang tải…</div></header>
+<div class="grid" id="summary"></div>
+<div class="grid" id="workers"></div>
+<div class="columns">
+<section><h2>Giá mới nhất</h2><div class="scroll"><table id="prices"></table></div></section>
+<section><h2>Chênh lệch theo thời gian</h2><label for="symbol">Cặp giao dịch </label><select id="symbol">
+<option>BTC/USDT</option><option>ETH/USDT</option><option>SOL/USDT</option><option>XRP/USDT</option><option>ADA/USDT</option></select>
+<canvas id="chart" width="680" height="200" aria-label="Biểu đồ phần trăm chênh lệch"></canvas><small id="chart-note"></small></section>
+</div>
+<section><h2>So sánh theo cửa sổ</h2><div class="scroll"><table id="comparisons"></table></div></section>
+<div class="columns"><section><h2>Lịch sử giá</h2><div class="scroll"><table id="history"></table></div></section>
+<section><h2>Thông báo Telegram</h2><div id="alerts"></div></section></div></main>
+<script>
+const el=id=>document.getElementById(id), names=['binance','okx','bybit'];
+const date=value=>value?new Date(value).toLocaleString('vi-VN',{timeZone:'Asia/Ho_Chi_Minh'}):'—';
+const cell=(tag,text)=>{const n=document.createElement(tag);n.textContent=text??'—';return n};
+const table=(id,headers,rows)=>{
+  const target=el(id);target.replaceChildren();
+  const head=target.createTHead().insertRow();headers.forEach(v=>head.append(cell('th',v)));
+  const body=target.createTBody();
+  for(const row of rows){const tr=body.insertRow();row.forEach(v=>tr.append(cell('td',v)))}
+  if(!rows.length){const empty=cell('td','Chưa có dữ liệu');empty.colSpan=headers.length;body.insertRow().append(empty)}
+};
+const card=(title,detail,status)=>{const n=document.createElement('section');const label=cell('h2',title);
+  if(status)label.className=status;n.append(label,cell('p',detail));return n};
+let snapshot;
+function chart(){
+  const canvas=el('chart'), ctx=canvas.getContext('2d');ctx.clearRect(0,0,680,200);
+  if(!snapshot)return;
+  const data=snapshot.comparisons.filter(r=>r.symbol===el('symbol').value&&r.spread_percent!==undefined).reverse();
+  el('chart-note').textContent=data.length?data.length+' cửa sổ hợp lệ · đơn vị %':'Chưa có cửa sổ với ít nhất hai sàn hợp lệ';
+  if(!data.length)return;
+  const top=Math.max(...data.map(r=>Number(r.spread_percent)),0.001), times=data.map(r=>Date.parse(r.end));
+  ctx.font='14px system-ui';ctx.fillStyle='#9fb4d2';ctx.fillText(top.toFixed(4)+'%',14,20);ctx.fillText('0%',14,174);
+  ctx.strokeStyle='#2b3d57';ctx.beginPath();ctx.moveTo(76,170);ctx.lineTo(650,170);ctx.stroke();
+  const points=data.map((r,i)=>[76+(times[i]-times[0])/Math.max(1,times.at(-1)-times[0])*564,
+                                170-Number(r.spread_percent)/top*135]);
+  ctx.strokeStyle='#64e9c4';ctx.lineWidth=2;ctx.beginPath();points.forEach(([x,y],i)=>i?ctx.lineTo(x,y):ctx.moveTo(x,y));ctx.stroke();
+  ctx.fillStyle='#64e9c4';points.forEach(([x,y])=>{ctx.beginPath();ctx.arc(x,y,3,0,2*Math.PI);ctx.fill()});
+}
+function render(d){
+  snapshot=d;
+  el('status').textContent='Cập nhật '+date(d.at)+' · UTC+7';
+  el('summary').replaceChildren(card(d.online+'/3 Worker online','Theo heartbeat'),card(Object.values(d.counts).reduce((a,b)=>a+b,0)+' bản ghi','PostgreSQL'),
+    card('Tài nguyên Master',d.master.cpu_percent+'% CPU · '+d.master.rss_mib+' MiB RAM · '+d.master.disk_percent+'% đĩa'));
+  el('workers').replaceChildren(...d.workers.map(w=>card(w.exchange.toUpperCase()+' · '+(w.online?'Online':'Offline'),
+    w.id+' · Outbox '+(w.data.pending??'—')+' · Lỗi API '+(w.data.api_errors??'—')+'/'+(Number.isInteger(w.data.requests)?w.data.requests:'—')+
+    ' · Heartbeat '+date(w.last_heartbeat),w.online?'on':'off')));
+  table('prices',['Symbol',...names],['BTC','ETH','SOL','XRP','ADA'].map(base=>[base+'/USDT',...names.map(name=>
+    d.latest.find(r=>r.symbol===base+'/USDT'&&r.exchange===name)?.price??'Thiếu')]));
+  table('comparisons',['Khung đóng','Symbol','Nguồn','Cao nhất','Thấp nhất','Chênh lệch (%)'],
+    d.comparisons.slice(0,12).map(r=>[date(r.end),r.symbol,r.valid+'/3',r.high_exchange,r.low_exchange,
+    r.spread_percent===undefined?'—':Number(r.spread_percent).toFixed(5)]));
+  table('history',['Thu thập','Sàn','Symbol','USDT'],d.history.slice(0,8).map(r=>[date(r.collected_at),r.exchange,r.symbol,r.price]));
+  el('alerts').replaceChildren(...(d.alerts.length?d.alerts.slice(0,3).map(a=>cell('pre',a.state+'\n'+a.body)):[cell('p','Chưa có thông báo')]));
+  chart();
+}
+el('symbol').addEventListener('change',chart);
+async function load(){
+  try{const response=await fetch('/api/overview');if(!response.ok)throw Error(response.status);render(await response.json())}
+  catch(error){el('status').textContent='Không tải được dữ liệu · sẽ thử lại'}
+  setTimeout(load,5000);
+}
+load();
+</script>

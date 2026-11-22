@@ -1,0 +1,7 @@
+{
+  "symbols": ["BTCUSDT", "ETHUSDT", "SOLUSDT", "XRPUSDT", "ADAUSDT"],
+  "price_seconds": 60,
+  "ticker_seconds": 300,
+  "kline_seconds": 300,
+  "candle_limit": 3
+}
